@@ -2,10 +2,14 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: API stack for stonk trading
 
 Parameters:
+  ApiGatewayStageName:
+    Type: String
+    AllowedPattern: "[a-z0-9]+"
+    Default: dev
   LambdaFunctionName:
     Type: String
     AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
-    Default: stonktrade
+    Default: trade-stonks
 
 Resources:
   LambdaFunction:
@@ -28,7 +32,6 @@ Resources:
           };
 
           const getTrades = event => {
-            // let timestamp = Date.now()
             let trade = {
               company: 'GME',
               volume: '1000',
@@ -44,7 +47,6 @@ Resources:
           const addTrade = event => {
             let body = JSON.parse(event.body);
             body.timestamp = event.requestContext.requestTime;
-            console.log('Trade added', body);
             return {
               statusCode: 200,
               body: JSON.stringify({
@@ -86,3 +88,56 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LambdaFunctionName}
       RetentionInDays: 90
+      
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Stonk Trade API Gateway
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: 'stonks-api'
+
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ParentId: !GetAtt 
+        - ApiGatewayRestApi
+        - RootResourceId
+      PathPart: 'trade'
+
+  ApiGatewayPOSTMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ApiGatewayResource
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+  
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: !Ref ApiGatewayStageName
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayPOSTMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+
+  LambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${ApiGatewayStageName}/ANY/trade

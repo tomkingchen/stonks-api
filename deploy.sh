@@ -14,7 +14,12 @@ fi
 # Define parameters array
 declare -A parameters
 
+# Get current date and time
+currentdate=`date`
+currentdate=${currentdate// /-}
+
 # stack parameters
+parameters["ApiGatewayStageName"]="dev"
 parameters["LambdaFunctionName"]="trade-stonks"
 
 file='stack.yml'

@@ -22,36 +22,46 @@ Resources:
       Handler: index.handler
       Code:
         ZipFile: |
+          const AWS = require("aws-sdk");
+          const dynamoClient = new AWS.DynamoDB.DocumentClient();
+
           exports.handler = async (event) => {
+            let response
             if (event.httpMethod === 'GET'){
-              return getTrades(event);
-            }
-            if (event.httpMethod === 'POST'){
-              return addTrade(event);
-            }
-          };
-
-          const getTrades = event => {
-            let trade = {
-              company: 'GME',
-              volume: '1000',
-              price: '400',
-              time: event.requestContext.requestTime
+              try {
+                response = await dynamoClient.scan({ TableName: "good-stonks-table" }).promise();
+                return {
+                  statusCode: 200,
+                  body: JSON.stringify(response)
+                };
+              } catch (error) {
+                console.log('Retrieve trades error: ' + error)
+              }
             };
-            return {
-              statusCode: 200,
-              body: JSON.stringify(trade)
-            }
-          }
-
-          const addTrade = event => {
-            let body = JSON.parse(event.body);
-            body.timestamp = event.requestContext.requestTime;
-            return {
-              statusCode: 200,
-              body: JSON.stringify({
-                message: 'Trade submitted!' + event.body
-              })
+            if (event.httpMethod === 'POST'){
+              let requestJSON = JSON.parse(event.body);
+              try{
+                await dynamoClient
+                .put({
+                  TableName: "good-stonks-table",
+                  Item: {
+                    company: requestJSON.company,
+                    action: requestJSON.action,
+                    price: requestJSON.price,
+                    volume: requestJSON.volume,
+                    timestamp: event.requestContext.requestTime
+                  }
+                })
+                .promise();
+                return {
+                  statusCode: 200,
+                  body: JSON.stringify({
+                    message: 'Trade submitted!' + event.body
+                  })
+                }
+              } catch (error){
+                console.log('Add trade error: ' + error)
+              }
             }
           }
       Tags:

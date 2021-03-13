@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: API stack for stonk trading
+
+Parameters:
+  LambdaFunctionName:
+    Type: String
+    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
+    Default: stonktrade
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Description: Stonk Trading function
+      Runtime: nodejs12.x
+      Role: !GetAtt LambdaIAMRole.Arn
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            if (event.httpMethod === 'GET'){
+              return getTrades(event);
+            }
+            if (event.httpMethod === 'POST'){
+              return addTrade(event);
+            }
+          };
+
+          const getTrades = event => {
+            // let timestamp = Date.now()
+            let trade = {
+              company: 'GME',
+              volume: '1000',
+              price: '400',
+              time: event.requestContext.requestTime
+            };
+            return {
+              statusCode: 200,
+              body: JSON.stringify(trade)
+            }
+          }
+
+          const addTrade = event => {
+            let body = JSON.parse(event.body);
+            body.timestamp = event.requestContext.requestTime;
+            console.log('Trade added', body);
+            return {
+              statusCode: 200,
+              body: JSON.stringify({
+                message: 'Trade submitted!' + event.body
+              })
+            }
+          }
+      Tags:
+        - Key: owner
+          Value: "Tom Chen"
+
+  LambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${LambdaFunctionName}:*
+          PolicyName: lambda
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LambdaFunctionName}
+      RetentionInDays: 90

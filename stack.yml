@@ -141,3 +141,7 @@ Resources:
       FunctionName: !GetAtt LambdaFunction.Arn
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${ApiGatewayStageName}/ANY/trade
+
+Outputs:
+  ApiGatewayInvokeURL:
+    Value: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStageName}

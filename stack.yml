@@ -92,9 +92,13 @@ Resources:
                 Resource:
                   - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${LambdaFunctionName}:*
               - Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
                   - dynamodb:GetItem
                   - dynamodb:Query
+                  - dynamodb:Scan
                   - dynamodb:PutItem
+                  - dynamodb:UpdateItem
                 Effect: Allow
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/good-stonks-table

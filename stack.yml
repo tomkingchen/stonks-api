@@ -167,10 +167,10 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: 'company'
+        - AttributeName: 'timestamp'
           AttributeType: 'S'
       KeySchema:
-        - AttributeName: 'company'
+        - AttributeName: 'timestamp'
           KeyType: 'HASH'
       ProvisionedThroughput:
         ReadCapacityUnits: 5

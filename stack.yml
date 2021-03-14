@@ -128,9 +128,10 @@ Resources:
         - RootResourceId
       PathPart: 'trade'
 
-  ApiGatewayPOSTMethod:
+  ApiGatewayMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      ApiKeyRequired: true
       RestApiId: !Ref ApiGatewayRestApi
       ResourceId: !Ref ApiGatewayResource
       HttpMethod: ANY
@@ -151,7 +152,7 @@ Resources:
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
-      - ApiGatewayPOSTMethod
+      - ApiGatewayMethod
     Properties:
       RestApiId: !Ref ApiGatewayRestApi
 
@@ -162,6 +163,30 @@ Resources:
       FunctionName: !GetAtt LambdaFunction.Arn
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${ApiGatewayStageName}/ANY/trade
+
+  ApiKey:
+    Type: 'AWS::ApiGateway::ApiKey'
+    DependsOn:
+      - ApiGatewayDeployment
+    Properties:
+      Name: stonks-api-key
+      Enabled: true
+  
+  ApiUsagePlan:
+    Type: "AWS::ApiGateway::UsagePlan"
+    DependsOn: ApiGatewayStage
+    Properties:
+      ApiStages:
+      - ApiId: !Ref ApiGatewayRestApi
+        Stage: !Ref ApiGatewayStageName
+      UsagePlanName: !Join ["", [{"Ref": "AWS::StackName"}, "-usage-plan"]]
+  
+  ApiUsagePlanKey:
+    Type: "AWS::ApiGateway::UsagePlanKey"
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ApiUsagePlan
 
   DynamoDBTable:
     Type: AWS::DynamoDB::Table

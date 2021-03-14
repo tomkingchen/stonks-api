@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -x
 
 stack_name="stonks-api-stack"
 region="ap-southeast-2"

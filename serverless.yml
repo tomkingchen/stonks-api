@@ -1,0 +1,84 @@
+service: stonks-api
+
+provider:
+  name: aws
+  stage: dev
+  runtime: nodejs12.x
+  apiKeys:
+    - stonks-api-key
+  region: ap-southeast-2
+  stackTags:
+    Owner: tomking.chen@gmail.com
+  
+functions:
+  tradestonks:
+    role: DynamoDBRole
+    handler: handler.tradestonks
+    events:
+      - http:
+          path: /trade
+          method: ANY
+          private: true
+
+resources:
+  Resources:
+    DynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 'good-stonks-table'
+        AttributeDefinitions:
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: timestamp
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    DynamoDBRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Action:
+                - sts:AssumeRole
+              Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+        Policies:
+          - PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Effect: Allow
+                  Resource:
+                    - Fn::Join:
+                      - ':'
+                      -
+                        - 'arn:aws:logs'
+                        - Ref: 'AWS::Region'
+                        - Ref: 'AWS::AccountId'
+                        - 'log-group:/aws/lambda/*'
+                - Action:
+                    - dynamodb:BatchGetItem
+                    - dynamodb:BatchWriteItem
+                    - dynamodb:GetItem
+                    - dynamodb:Query
+                    - dynamodb:Scan
+                    - dynamodb:PutItem
+                    - dynamodb:UpdateItem
+                  Effect: Allow
+                  Resource:
+                    - Fn::Join:
+                      - ':'
+                      -
+                        - 'arn:aws:dynamodb'
+                        - Ref: 'AWS::Region'
+                        - Ref: 'AWS::AccountId'
+                        - 'table/good-stonks-table'
+            PolicyName: lambda

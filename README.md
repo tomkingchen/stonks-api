@@ -19,3 +19,13 @@ To test the API
 ```
 ./test.sh
 ```
+
+## TODOs
+- Add a WAF in front of API Gateway
+- Add a custom domain for API Gateway endpoint
+- Add an authorizer function in front of Lambda
+- Create function local invocation test scripts
+- Add data validation in the code
+- Move trade logic into library
+- Create unit tests for the code
+- Add API Documentation

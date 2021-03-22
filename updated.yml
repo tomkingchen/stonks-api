@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM stack for stonks-api
+Parameters:
+  ApiGatewayStageName:
+    Type: String
+    AllowedPattern: '[a-z0-9]+'
+    Default: dev
+  LambdaFunctionName:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+'
+    Default: trade-stonks
+Resources:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: good-stonks-table
+      AttributeDefinitions:
+      - AttributeName: timestamp
+        AttributeType: S
+      KeySchema:
+      - AttributeName: timestamp
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  StonksApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Auth:
+        ApiKeyRequired: true
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+    - ApiUsagePlan
+    Properties:
+      Name: stonks-api-key
+      Enabled: true
+  ApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+      - ApiId:
+          Ref: StonksApi
+        Stage:
+          Ref: ApiGatewayStageName
+      UsagePlanName:
+        Fn::Join:
+        - ''
+        - - Ref: AWS::StackName
+          - -usage-plan
+  ApiUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId:
+        Ref: ApiKey
+      KeyType: API_KEY
+      UsagePlanId:
+        Ref: ApiUsagePlan
+  TradeStonksFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs12.x
+      Handler: index.handler
+      CodeUri: s3://tom-lambda-repo/efd7e65daca7484aaa1dcd8ac35166cd
+      Events:
+        StonksApiEndpoint:
+          Type: Api
+          Properties:
+            Path: /trade
+            Method: any
+            RestApiId:
+              Ref: StonksApi
+            Auth:
+              ApiKeyRequired: true
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:BatchGetItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          Resource:
+            Fn::GetAtt:
+            - DynamoDBTable
+            - Arn
+Outputs:
+  ApiGatewayInvokeURL:
+    Value:
+      Fn::Sub: https://${StonksApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStageName}

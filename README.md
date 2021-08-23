@@ -17,7 +17,7 @@ To remove the CFN stack
 ```
 To test the API
 ```
-./test.sh
+./test/test.sh
 ```
 
 ## TODOs

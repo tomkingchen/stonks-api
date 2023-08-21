@@ -1,0 +1,10 @@
+[
+    {
+        "ParameterKey": "ApiGatewayStageName",
+        "ParameterValue": "dev"
+    },
+    {
+        "ParameterKey": "LambdaFunctionName",
+        "ParameterValue": "trade-stonks"
+    }
+]

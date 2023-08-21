@@ -9,7 +9,7 @@ base_uri="${base_uri%\"}"
 base_uri="${base_uri#\"}"
 base_uri+='/trade'
 
-api_key=$(aws apigateway get-api-keys --name-query 'stonks-api-key' --include-value|jq '.items[0].value')
+api_key=$(aws apigateway get-api-keys --region $region --name-query 'stonks-api-key' --include-value|jq '.items[0].value')
 # Remove quotes around the api key
 api_key="${api_key%\"}"
 api_key="${api_key#\"}"

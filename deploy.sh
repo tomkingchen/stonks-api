@@ -10,25 +10,13 @@ else
 	type_formation='update-stack'
 fi
 
-# Define parameters array
-declare -A parameters
-
 # Get current date and time
 currentdate=`date`
 currentdate=${currentdate// /-}
 
-# stack parameters
-parameters["ApiGatewayStageName"]="dev"
-parameters["LambdaFunctionName"]="trade-stonks"
-
 file='stack.yml'
-
-# Join parameters together
-s_parameters=''
-for i in "${!parameters[@]}"; do
-	s_parameters=$s_parameters' '$(printf "ParameterKey=%s,ParameterValue=%s" $i ${parameters[${i}]})
-done
+params_file='params.json'
 
 echo "Begin "$type_formation"......."
-eval "aws cloudformation $type_formation --stack-name $stack_name --template-body 'file://$file' --parameters $s_parameters --capabilities CAPABILITY_NAMED_IAM --region $region"
+eval "aws cloudformation $type_formation --stack-name $stack_name --template-body 'file://$file' --parameters file://$params_file --capabilities CAPABILITY_NAMED_IAM --region $region"
 exit
